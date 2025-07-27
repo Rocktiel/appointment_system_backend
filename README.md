@@ -2,9 +2,6 @@
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
 <!--
   <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
     <p align="center">
@@ -22,8 +19,6 @@
   <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
   [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)--> -->
 
----
-
 ## Appointment System (Backend)
 
 Bu proje, işletme sahiplerinin işletmelerini, randevularını ve hizmetlerini kolayca yönetebileceği ve müşterilerin kolayca randevu oluşturabileceği **çok rollü** bir randevu yönetim sistemidir. Modern yazılım standartlarına uygun olarak geliştirilmiş olup **NestJS**, **PostgreSQL**, **TypeORM**, **JWT**, **Twilio**, **Ethereal**, **Swagger** gibi teknolojilerle donatılmıştır.
@@ -34,7 +29,7 @@ Sistem, çeşitli kullanıcı rolleri **(Admin, Business, Customer)** için fark
 
 ## 🧱 Projede Kullanılan Teknolojiler
 
-- **NestJS** – Modüler, ölçeklenebilir ve test edilebilir Node.js framework'ü
+- **[NestJS](https://nestjs.com/)** – Modüler, ölçeklenebilir ve test edilebilir Node.js framework'ü
 - **PostgreSQL** – Güçlü ilişkisel veritabanı
 - **TypeORM** – PostgreSQL ile kolay etkileşim için bir ORM (Object-Relational Mapper). Entity ve veri erişim yönetimi için
 - **JWT (JSON Web Tokens)** – Kimlik doğrulama ve yetkilendirme
@@ -54,6 +49,66 @@ Sistem, çeşitli kullanıcı rolleri **(Admin, Business, Customer)** için fark
 | **Customer** | Randevu oluşturur (giriş sistemi yok, sadece işlem bazlı kullanım)          |
 | **Auth**     | Giriş, kayıt, e-posta doğrulama, JWT üretimi                                |
 
+### **Auth**
+
+- `POST /auth/register` – Yeni bir kullanıcı kaydı oluşturur.
+- `POST /auth/confirm-email` – E-posta adresine gönderilen doğrulama kodu ile hesabın aktive edilmesini sağlar.
+- `POST /auth/login` – Kullanıcının giriş yapmasını sağlar.
+- `POST /auth/refresh` – Refresh token ile yeni bir access token alınmasını sağlar.
+- `GET  /auth/me` – Giriş yapmış kullanıcının bilgilerini döner. (JWT doğrulaması gereklidir.)
+- `GET  /auth/verify` – Mevcut access token’ın geçerli olup olmadığını kontrol eder. (JWT doğrulaması gereklidir.)
+- `POST /auth/logout` – Kullanıcının çıkış yapmasını sağlar.
+
+### **Business**
+
+İşletme Yönetimi
+
+- `POST /business/create` – Yeni bir işletme oluşturur.
+- `GET /business/check-add-permission` – Kullanıcının yeni bir işletme ekleyip ekleyemeyeceğini kontrol eder.
+- `PUT /business/:id` – Belirli bir işletmenin bilgilerini günceller.
+- `GET /business/my-businesses` – Kullanıcının sahip olduğu tüm işletmeleri listeler.
+
+Paketler
+
+- `GET /business/packages` – Mevcut abonelik paketlerini listeler.
+- `GET /business/my-package` – Kullanıcının aktif paket bilgilerini getirir.
+- `POST /business/subscribe` – Bir pakete abone olunmasını sağlar.
+  Zaman Dilimi (Time Slot) Yönetimi
+
+- `POST /business/time-slot/create` – Yeni bir zaman dilimi oluşturur.
+- `PUT /business/:businessId/time-slots/:slotId` – Belirli bir zaman dilimini günceller.
+- `DELETE /business/time-slots/delete/:slotId` – Belirli bir zaman dilimini siler.
+- `GET /business/:id/time-slots` – Belirli bir işletmenin tüm zaman dilimlerini getirir.
+- `GET /business/:id/time-slots/:dayId` – Belirli bir işletmenin belirli bir güne ait zaman dilimlerini getirir.
+- `GET /business/business/:businessId/detailed-slots-range?start=YYYY-MM-DD&end=YYYY-MM-DD` – Belirli bir tarih aralığında haftalık detaylı zaman dilimlerini getirir.
+
+Hizmet (Service) Yönetimi
+
+- `POST /business/:businessId/services` – Yeni bir hizmet oluşturur.
+- `GET /business/:businessId/services` – Belirli bir işletmeye ait tüm hizmetleri listeler.
+- `PUT /business/:businessId/services/:serviceId` – Belirli bir hizmeti günceller.
+- `DELETE /business/:businessId/services/:serviceId` – Belirli bir hizmeti siler.
+
+Randevu (Appointment) Yönetimi
+
+- `GET /business/appointments` – Filtrelenmiş randevu listesini getirir.
+- `GET /business/appointment` – Belirli bir zaman dilimine ait randevuyu getirir.
+- `GET /business/appointments/:id` – ID ile tekil randevuyu getirir.
+
+### **Admin**
+
+- `POST /admin/create` – Abonelik paketi oluşturur.
+- `POST /admin/getPackages` – Abonelik paketlerini getirir.
+  (Eklenecek.)
+
+### **Customer**
+
+- `GET /customers/business/:slug` – Belirli bir işletmenin URL slug'ını kullanarak detaylı bilgilerini getirir. Müşterilerin randevu almadan önce işletme hakkında bilgi edinmesini sağlar.
+- `GET /customers/business/:businessId/detailed-slots/:date` – Belirli bir işletme ve tarih için müsait ve dolu olan zaman dilimlerinin detaylı listesini getirir. Müşterilerin randevu alırken uygun saatleri görmesini sağlar.
+- `POST /customers/initiate-appointment-booking` – Randevu oluşturma sürecini başlatır. Müşterinin verdiği telefon numarasına bir doğrulama kodu (SMS ile) gönderir. Henüz randevu oluşturulmaz, sadece doğrulama başlatılır.
+- `POST /customers/verify-phone` – Bir önceki adımda gönderilen doğrulama kodunu ve telefon numarasını kontrol ederek telefon numarasını doğrular.
+- `POST /customers/finalize-appointment` – elefon numarası başarıyla doğrulandıktan sonra, randevuyu sisteme kaydeder ve kesinleştirir.
+
 ---
 
 ## 🔐 Kimlik Doğrulama & Güvenlik
@@ -71,6 +126,13 @@ Sistem, çeşitli kullanıcı rolleri **(Admin, Business, Customer)** için fark
 - Şifreler bcrypt ile hashlenir.
 - Kayıt esnasında E-posta doğrulama.(Test Ortamı için Nodemailer + Ethereal)
 - Randevu oluştururken SMS doğrulama.
+
+---
+
+## 📚 API Dokümentasyon
+
+- Visit [http://localhost:3000/docs](http://localhost:3000/docs) for Swagger UI.
+- Try all endpoints, including file upload for product import and image upload.
 
 ---
 
