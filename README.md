@@ -173,6 +173,8 @@ PostgreSQL sunucusuna "postgres" kullanıcısı olarak bağlanır ve PostgreSQL 
 sudo -u postgres psql
 ```
 
+Veri tabanı oluşturma işlemleri:
+
 ```bash
 # 'appointment_system' adında bir veritabanı oluşturur
 CREATE DATABASE appointment_system;
@@ -188,58 +190,33 @@ GRANT ALL PRIVILEGES ON DATABASE appointment_system TO myuser;
 ALTER DATABASE appointment_system OWNER TO myuser;
 ```
 
-'appointment_system' adında bir database oluşturur.
+Bazı PostgreSQL Terminal Komutları
 
 ```bash
-CREATE DATABASE appointment_system;
-```
-
-'myuser' adında 'mypassword' şifresine sahip bir kullanıcı oluşturur.
-
-```bash
-CREATE USER myuser WITH PASSWORD 'mypassword';
-```
-
-"myuser" kullanıcısına "appointment_system" veritabanı üzerinde TÜM yetkileri verir.Bu, kullanıcının tablo oluşturma, silme, veri ekleme/güncelleme/silme gibi tüm işlemleri yapabilmesini sağlar.
-
-```bash
-GRANT ALL PRIVILEGES ON DATABASE appointment_system TO myuser;
-```
-
-Veritabanı sahipliği değiştirme
-
-```bash
-ALTER DATABASE appointment_system OWNER TO myuser;
-```
-
-Postgre arayüzünden çık.
-
-```bash
+-- PostgreSQL arayüzünden çıkmak için:
 \q
-```
 
-Oluşturulan veri tabanlarını listeler.
-
-```bash
+-- Tüm veritabanlarını listelemek için:
 \l
-```
 
-Oluşturulan kullanıcıları listeler.
-
-```bash
+-- Mevcut kullanıcıları (rolleri) listelemek için:
 \du
-```
 
-`appointment_system`veritabanına bağlanır. Buradan SQL kodları ile istediğimiz işlemleri yapabiliriz.
-
-```bash
+-- Belirli bir veritabanına bağlanmak için:
 \c appointment_system
-```
 
-Postgre arayüzünden çık.
+-- Şema izinlerini ve detaylarını listelemek için:
+\dn+
 
-```bash
-\q
+-- Mevcut tabloları listelemek için:
+\dt
+
+-- Mevcut tabloları daha fazla detayla (sahip, boyut vb.) listelemek için:
+\dt+
+
+-- Belirli bir tablonun yapısını (kolonlar, tipler, kısıtlamalar) görüntülemek için:
+\d tablo_adi
+
 ```
 
 ---
