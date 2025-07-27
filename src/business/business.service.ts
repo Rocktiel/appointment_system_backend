@@ -15,13 +15,15 @@ import {
   TimeSlot,
   User,
 } from 'src/_common/typeorm';
-import { Repository } from 'typeorm';
+import { Raw, Repository } from 'typeorm';
 import { TimeSlotRequestDto } from './dto/request/TimeSlotRequest.dto';
 import { BusinessRequestDto } from './dto/request/BusinessRequest.dto';
 import { SubscribePackageDto } from './dto/request/SubscribePackageRequest.dto';
 import { CreateServiceDto } from './dto/request/CreateService.dto';
 import { AppointmentsRequestDto } from './dto/request/AppointmentsRequest.dto';
-
+import { parseISO, getDay, format } from 'date-fns';
+import { DetailedTimeSlotDto } from 'src/customer/dto/request/DetailedTimeSlot.dto';
+import { AppointmentStatus } from 'src/_common/enums/AppointmentStatus.enum';
 @Injectable()
 export class BusinessService {
   constructor(
@@ -360,6 +362,87 @@ export class BusinessService {
       relations: ['service'],
     });
     return appointment;
+  }
+
+  async getDetailedTimeSlotsInRange(
+    businessId: number,
+    startDate: string, // YYYY-MM-DD
+    endDate: string, // YYYY-MM-DD
+  ): Promise<Record<string, DetailedTimeSlotDto[]>> {
+    const business = await this.businessRepository.findOne({
+      where: { id: businessId },
+    });
+    if (!business) {
+      throw new NotFoundException(`Business with ID ${businessId} not found`);
+    }
+
+    const start = parseISO(startDate);
+    const end = parseISO(endDate);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) {
+      throw new BadRequestException('Invalid date range');
+    }
+
+    const dateList: string[] = [];
+    const current = new Date(start);
+    while (current <= end) {
+      dateList.push(format(current, 'yyyy-MM-dd'));
+      current.setDate(current.getDate() + 1);
+    }
+
+    const allAppointments = await this.appointmentRepository.find({
+      where: {
+        business: { id: businessId },
+        date: Raw((alias) => `${alias} BETWEEN :start AND :end`, {
+          start: startDate,
+          end: endDate,
+        }),
+        status: Raw((alias) => `${alias} IN (:...statuses)`, {
+          statuses: [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED],
+        }),
+      },
+    });
+
+    const result: Record<string, DetailedTimeSlotDto[]> = {};
+
+    for (const dateStr of dateList) {
+      const parsedDate = parseISO(dateStr);
+      const dayOfWeekIndex = getDay(parsedDate); // 0 (Sun) - 6 (Sat)
+
+      const dayId = dayOfWeekIndex === 0 ? 7 : dayOfWeekIndex;
+
+      const templates = await this.timeSlotRepo.find({
+        where: {
+          business: { id: businessId },
+          day: { id: dayId },
+        },
+        order: { start_time: 'ASC' },
+      });
+
+      const dayAppointments = allAppointments.filter(
+        (appt) => appt.date === dateStr,
+      );
+
+      result[dateStr] = templates.map((template) => {
+        const isAvailable = !dayAppointments.some((appointment) => {
+          const templateStart = new Date(`2000-01-01T${template.start_time}`);
+          const templateEnd = new Date(`2000-01-01T${template.end_time}`);
+          const apptStart = new Date(`2000-01-01T${appointment.start_time}`);
+          const apptEnd = new Date(`2000-01-01T${appointment.end_time}`);
+
+          return templateStart < apptEnd && templateEnd > apptStart;
+        });
+
+        return {
+          id: template.id,
+          start_time: template.start_time.substring(0, 5),
+          end_time: template.end_time.substring(0, 5),
+          isAvailableForBooking: isAvailable,
+        };
+      });
+    }
+
+    return result;
   }
 
   async getAppointmentByTimeSlotId(

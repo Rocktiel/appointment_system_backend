@@ -303,4 +303,17 @@ export class BusinessController {
       excludeExtraneousValues: true,
     });
   }
+
+  @Get('business/:businessId/detailed-slots-range')
+  async getWeeklySlots(
+    @Param('businessId', ParseIntPipe) businessId: number,
+    @Query('start') start: string,
+    @Query('end') end: string,
+  ) {
+    return this.businessService.getDetailedTimeSlotsInRange(
+      businessId,
+      start,
+      end,
+    );
+  }
 }
