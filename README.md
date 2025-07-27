@@ -193,28 +193,28 @@ ALTER DATABASE appointment_system OWNER TO myuser;
 Bazı PostgreSQL Terminal Komutları
 
 ```bash
--- PostgreSQL arayüzünden çıkmak için:
+# PostgreSQL arayüzünden çıkmak için:
 \q
 
--- Tüm veritabanlarını listelemek için:
+# Tüm veritabanlarını listelemek için:
 \l
 
--- Mevcut kullanıcıları (rolleri) listelemek için:
+# Mevcut kullanıcıları (rolleri) listelemek için:
 \du
 
--- Belirli bir veritabanına bağlanmak için:
+# Belirli bir veritabanına bağlanmak için:
 \c appointment_system
 
--- Şema izinlerini ve detaylarını listelemek için:
+# Şema izinlerini ve detaylarını listelemek için:
 \dn+
 
--- Mevcut tabloları listelemek için:
+# Mevcut tabloları listelemek için:
 \dt
 
--- Mevcut tabloları daha fazla detayla (sahip, boyut vb.) listelemek için:
+# Mevcut tabloları daha fazla detayla (sahip, boyut vb.) listelemek için:
 \dt+
 
--- Belirli bir tablonun yapısını (kolonlar, tipler, kısıtlamalar) görüntülemek için:
+# Belirli bir tablonun yapısını (kolonlar, tipler, kısıtlamalar) görüntülemek için:
 \d tablo_adi
 
 ```
@@ -265,48 +265,18 @@ sudo npm install -g pm2
 
 # Backend uygulamasını PM2 ile başlat
 # ÖNEMLİ: Bu komutu projenizin kök dizininde (`appointment_system_backend`) çalıştırdığınızdan emin olun.
-pm2 start dist/main.js --name appointment-backend --cwd /home/sami/appointment_system_backend
+pm2 start dist/main.js --name appointment_backend
 
 # PM2'nin sistemi yeniden başlattığında uygulamalarınızı otomatik olarak başlatmasını sağlar
 pm2 startup
 
 # Mevcut çalışan uygulamaların listesini (appointment-backend gibi) kalıcı olarak kaydeder
 pm2 save
-```
 
-pm2 yüklüyoruz.
-
-```bash
-sudo npm install -g pm2
-```
-
-Backend'i başlatıyoruz.
-
-```bash
-pm2 start dist/main.js --name appointment_backend
-```
-
-Sistemi yeniden başlattığımızda PM2'nin otomatik olarak devreye girmesini sağlar.
-
-```bash
-pm2 startup
-```
-
-Şu anda çalışan uygulamaların listesini (appointment_backend gibi) kalıcı olarak kaydeder.
-
-```bash
-pm2 save
-```
-
-Başlattığımız bir projenin hata fırlatıp fırlatmadığına bakabiliriz.
-
-```bash
+# Başlattığımız bir projenin hata fırlatıp fırlatmadığına bakabiliriz.
 pm2 logs appointment_backend
-```
 
-Backend'i yeniden başlatır.
-
-```bash
+# Backend'i yeniden başlatır.
 pm2 restart appointment_backend
 ```
 
@@ -323,79 +293,3 @@ sudo ufw enable
 # Güvenlik duvarı durumunu kontrol et
 sudo ufw status
 ```
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
-
-```bash
-$ npm install
-```
-
-## Compile and run the project
-
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
-```
-
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
