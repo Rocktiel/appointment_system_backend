@@ -2,23 +2,6 @@
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
 
-<!--
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)--> -->
-
 ## Appointment System (Backend)
 
 Bu proje, işletme sahiplerinin işletmelerini, randevularını ve hizmetlerini kolayca yönetebileceği ve müşterilerin kolayca randevu oluşturabileceği **çok rollü** bir randevu yönetim sistemidir. Modern yazılım standartlarına uygun olarak geliştirilmiş olup **NestJS**, **PostgreSQL**, **TypeORM**, **JWT**, **Twilio**, **Ethereal**, **Swagger** gibi teknolojilerle donatılmıştır.
@@ -30,13 +13,13 @@ Sistem, çeşitli kullanıcı rolleri **(Admin, Business, Customer)** için fark
 ## 🧱 Projede Kullanılan Teknolojiler
 
 - **[NestJS](https://nestjs.com/)** – Modüler, ölçeklenebilir ve test edilebilir Node.js framework'ü
-- **PostgreSQL** – Güçlü ilişkisel veritabanı
-- **TypeORM** – PostgreSQL ile kolay etkileşim için bir ORM (Object-Relational Mapper). Entity ve veri erişim yönetimi için
-- **JWT (JSON Web Tokens)** – Kimlik doğrulama ve yetkilendirme
-- **Bcrypt** – Şifre güvenliği
-- **Swagger (OpenAPI)** – API dokümantasyonu
-- **Twilio** – SMS doğrulama hizmeti
-- **Nodemailer + Ethereal** – E-posta doğrulama (test ortamı)
+- **[PostgreSQL](https://www.postgresql.org/)** – Güçlü ilişkisel veritabanı
+- **[TypeORM](https://typeorm.io/)** – PostgreSQL ile kolay etkileşim için bir ORM (Object-Relational Mapper). Entity ve veri erişim yönetimi için
+- **[JWT (JSON Web Tokens)](https://jwt.io/)** – Kimlik doğrulama ve yetkilendirme
+- **[Bcrypt](https://github.com/kelektiv/node.bcrypt.js)** – Şifre güvenliği
+- **[Swagger (OpenAPI)](https://swagger.io/)** – API dokümantasyonu
+- **[Twilio](https://www.twilio.com/)** – SMS doğrulama hizmeti
+- **[Nodemailer](https://nodemailer.com/about/) + [Ethereal](https://ethereal.email/)** – E-posta doğrulama (test ortamı)
 
 ---
 
@@ -61,14 +44,14 @@ Sistem, çeşitli kullanıcı rolleri **(Admin, Business, Customer)** için fark
 
 ### **Business**
 
-İşletme Yönetimi
+-- İşletme Yönetimi
 
 - `POST /business/create` – Yeni bir işletme oluşturur.
 - `GET /business/check-add-permission` – Kullanıcının yeni bir işletme ekleyip ekleyemeyeceğini kontrol eder.
 - `PUT /business/:id` – Belirli bir işletmenin bilgilerini günceller.
 - `GET /business/my-businesses` – Kullanıcının sahip olduğu tüm işletmeleri listeler.
 
-Paketler
+-- Paketler
 
 - `GET /business/packages` – Mevcut abonelik paketlerini listeler.
 - `GET /business/my-package` – Kullanıcının aktif paket bilgilerini getirir.
@@ -82,14 +65,14 @@ Paketler
 - `GET /business/:id/time-slots/:dayId` – Belirli bir işletmenin belirli bir güne ait zaman dilimlerini getirir.
 - `GET /business/business/:businessId/detailed-slots-range?start=YYYY-MM-DD&end=YYYY-MM-DD` – Belirli bir tarih aralığında haftalık detaylı zaman dilimlerini getirir.
 
-Hizmet (Service) Yönetimi
+-- Hizmet (Service) Yönetimi
 
 - `POST /business/:businessId/services` – Yeni bir hizmet oluşturur.
 - `GET /business/:businessId/services` – Belirli bir işletmeye ait tüm hizmetleri listeler.
 - `PUT /business/:businessId/services/:serviceId` – Belirli bir hizmeti günceller.
 - `DELETE /business/:businessId/services/:serviceId` – Belirli bir hizmeti siler.
 
-Randevu (Appointment) Yönetimi
+-- Randevu (Appointment) Yönetimi
 
 - `GET /business/appointments` – Filtrelenmiş randevu listesini getirir.
 - `GET /business/appointment` – Belirli bir zaman dilimine ait randevuyu getirir.
@@ -131,8 +114,7 @@ Randevu (Appointment) Yönetimi
 
 ## 📚 API Dokümentasyon
 
-- Visit [http://localhost:3000/docs](http://localhost:3000/docs) for Swagger UI.
-- Try all endpoints, including file upload for product import and image upload.
+- Swagger UI için ziyaret et. [http://localhost:3002/docs](http://localhost:3002/docs)
 
 ---
 
