@@ -8,6 +8,25 @@ Bu proje, işletme sahiplerinin işletmelerini, randevularını ve hizmetlerini 
 
 Sistem, çeşitli kullanıcı rolleri **(Admin, Business, Customer)** için farklı yetkilendirme seviyeleri sunarak güvenli ve esnek bir randevu deneyimi sağlar. API, **JWT tabanlı kimlik doğrulama** kullanarak admin ve işletme sahiplerinin güvenliğini garanti ederken, müşteriler için doğrudan randevu oluşturma imkanı sunar.
 
+## Proje Kurulumu
+
+```bash
+$ npm install
+```
+
+## Projeyi derleyin ve çalıştırın
+
+```bash
+# development
+$ npm run start
+
+# watch mode
+$ npm run start:dev
+
+# production mode
+$ npm run start:prod
+```
+
 ---
 
 ## 🧱 Projede Kullanılan Teknolojiler
@@ -92,6 +111,11 @@ Sistem, çeşitli kullanıcı rolleri **(Admin, Business, Customer)** için fark
 - `POST /customers/verify-phone` – Bir önceki adımda gönderilen doğrulama kodunu ve telefon numarasını kontrol ederek telefon numarasını doğrular.
 - `POST /customers/finalize-appointment` – elefon numarası başarıyla doğrulandıktan sonra, randevuyu sisteme kaydeder ve kesinleştirir.
 
+### **Twilio**
+
+- `POST /sms/send-code` – Doğrulama kodunu sms olarak gönderir.
+- `POST /sms/verify-code` – Gönderilen kodu doğrular.
+
 ---
 
 ## 🔐 Kimlik Doğrulama & Güvenlik
@@ -112,7 +136,7 @@ Sistem, çeşitli kullanıcı rolleri **(Admin, Business, Customer)** için fark
 
 ---
 
-## 📚 API Dokümentasyon
+## 📚 API Dokümentasyonu
 
 - Swagger UI için ziyaret et. [http://localhost:3002/docs](http://localhost:3002/docs)
 
@@ -124,7 +148,7 @@ Bu rehber, Appointment System Backend uygulamasını bir Ubuntu Server üzerinde
 
 - Öncelikle kendi evimdeki eski bilgisayarıma Ubuntu Server(24.04.2) kurulumu yaptım.
 - Ardından tekrar tekrar IP değişmemesi için IP'sini sabitledim.(Netplan konfigürasyon ile)
-- Sonrasında kendi cihazımdan **ssh sami@SERVER_IP** komutu ile kurduğum sunucuya bağlandım.
+- Sonrasında kendi cihazımdan **ssh <KULLANICI_ADI>@<SERVER_IP>** komutu ile kurduğum sunucuya bağlandım.
 
 ### NodeJS ve npm Kurulumu
 
@@ -281,7 +305,7 @@ pm2 restart appointment_backend
 ```
 
 Güvenlik Duvarı (UFW) Ayarları
-Sunucunuzda UFW (Uncomplicated Firewall) etkinse, backend API'nizin dışarıdan erişilebilir olması için 3002 numaralı portu açmanız gerekir:
+Sunucunuzda UFW (Uncomplicated Firewall) etkinse, backend API'nizin dışarıdan erişilebilir olması için 3002 numaralı portu açmanız gerekir:( Siz projenizde hangi PORT numarasını ayarladıysanız ona göre değiştirin)
 
 ```bash
 # Backend'in dinlediği 3002 TCP portunu aç
@@ -293,3 +317,5 @@ sudo ufw enable
 # Güvenlik duvarı durumunu kontrol et
 sudo ufw status
 ```
+
+Artık aynı ağ üzerinden http://<SUNUCU_IP>:3002/ ile isteklerimizi atabiliriz.
