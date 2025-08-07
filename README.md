@@ -150,6 +150,10 @@ Bu rehber, Appointment System Backend uygulamasını bir Ubuntu Server üzerinde
 - Ardından tekrar tekrar IP değişmemesi için IP'sini sabitledim.(Netplan konfigürasyon ile)
 - Sonrasında kendi cihazımdan **ssh <KULLANICI_ADI>@<SERVER_IP>** komutu ile kurduğum sunucuya bağlandım.
 
+```bash
+ssh <KULLANICI_ADI>@<SERVER_IP>
+```
+
 ### NodeJS ve npm Kurulumu
 
 Node.js, backend uygulamamızın çalıştığı runtime ortamıdır. npm ise Node.js paket yöneticisidir.

@@ -14,6 +14,7 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { MailModule } from './mail/mail.module';
 import { TwilioModule } from './sms/twilio.module';
+import jwtConfig from './_common/config/jwt.config';
 
 @Module({
   providers: [
@@ -24,17 +25,26 @@ import { TwilioModule } from './sms/twilio.module';
     },
   ],
   imports: [
-    PassportModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-      global: true,
-      signOptions: { expiresIn: '4h' }, // Access token süresi
-    }),
     ConfigModule.forRoot({
       cache: true,
       isGlobal: true,
-      load: [databaseConfig],
+      load: [databaseConfig, jwtConfig],
     }),
+    PassportModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get<string>('jwt_service.secret'),
+        signOptions: {
+          expiresIn: configService.get<string>(
+            'jwt_service.accessTokenExpiresIn',
+          ),
+        },
+      }),
+      inject: [ConfigService],
+      global: true, // 👈 Global olarak kullanılabilir yapar
+    }),
+
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({

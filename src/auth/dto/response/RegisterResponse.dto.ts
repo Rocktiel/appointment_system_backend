@@ -4,7 +4,6 @@ import { UserResponse } from 'src/_common/response/User.response';
 
 export class RegisterResponse {
   accessToken: string;
-  refreshToken: string;
   user: UserResponse;
 }
 

@@ -7,22 +7,21 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from '../_common/strategies/jwt.strategy';
 import { User } from 'src/_common/typeorm';
 import { MailModule } from 'src/mail/mail.module';
-import * as dotenv from 'dotenv';
-dotenv.config();
+import { ConfigModule, ConfigService } from '@nestjs/config';
+// import * as dotenv from 'dotenv'; // Buna gerek yok, ConfigModule hallediyor
+// dotenv.config(); // Buna da gerek yok
 
 @Module({
   imports: [
     MailModule,
     TypeOrmModule.forFeature([User]),
     PassportModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-      global: true,
-      signOptions: { expiresIn: '4h' },
-    }),
+    // JwtModule'ü sadece import ediyoruz, çünkü AppModule'de zaten global olarak yapılandırıldı.
+    // Burada tekrar secret veya signOptions belirtmeye gerek yok.
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
-  exports: [JwtModule, PassportModule, AuthService],
+  // JwtModule'ü dışa aktarmak, JwtService'in diğer modüllerde de kullanılabilmesini sağlar.
+  exports: [AuthService],
 })
 export class AuthModule {}

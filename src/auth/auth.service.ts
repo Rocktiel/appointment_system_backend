@@ -1,7 +1,445 @@
+// import {
+//   BadRequestException,
+//   Injectable,
+//   NotFoundException,
+// } from '@nestjs/common';
+// import { RegisterRequestDto } from './dto/request/RegisterRequest.dto';
+// import { UserTypes } from 'src/_common/enums/UserTypes.enums';
+// import { InjectRepository } from '@nestjs/typeorm';
+// import { User } from 'src/_common/typeorm';
+// import { Repository } from 'typeorm';
+// import { ResponseMessages } from 'src/_common/enums/ResponseMessages.enum';
+// import * as bcrypt from 'bcrypt';
+// import { JwtPayload } from 'src/_common/payloads/jwt.payload';
+// import { JwtService } from '@nestjs/jwt';
+// import { LoginRequestDto } from './dto/request/LoginRequest.dto';
+// import { randomInt } from 'crypto';
+// import { MailService } from 'src/mail/mail.service';
+
+// @Injectable()
+// export class AuthService {
+//   constructor(
+//     @InjectRepository(User) private readonly authRepository: Repository<User>,
+//     private readonly jwtService: JwtService,
+//     private readonly mailService: MailService,
+//   ) {}
+
+//   async register(
+//     body: RegisterRequestDto,
+//   ): Promise<{ user: User; refreshToken: string; accessToken: string }> {
+//     const isAvailable = await this.isEmailAvailableForUserRegister(body);
+//     const userRole = body.userType;
+
+//     if (isAvailable) {
+//       if (userRole === UserTypes.BUSINESS) {
+//         const verificationCode = randomInt(100000, 999999).toString();
+//         const hashedPassword = await bcrypt.hashSync(body.password, 10);
+//         // Doğrulama kodunun 15 dakika sonra süresinin dolmasını ayarladık
+//         const confirmCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+//         const business = await this.authRepository.save({
+//           ...body,
+//           role: userRole,
+//           password: hashedPassword,
+//           confirmCode: verificationCode,
+//           confirmCodeExpiresAt: confirmCodeExpiresAt,
+//           isEmailConfirmed: false, // Yeni kayıt olanlar başlangıçta doğrulanmamış olur
+//         });
+
+//         await this.mailService.sendUserConfirmation(
+//           body.email,
+//           verificationCode,
+//         );
+
+//         const payload: JwtPayload = {
+//           email: business.email,
+//           id: business.id,
+//           role: userRole,
+//         };
+//         const accessToken = this.jwtService.sign(payload);
+//         const refreshToken = this.jwtService.sign(payload, {
+//           expiresIn: '30d',
+//         });
+
+//         return {
+//           user: business,
+//           refreshToken: refreshToken,
+//           accessToken: accessToken,
+//         };
+//       } else if (userRole === UserTypes.ADMIN) {
+//         const hashedPassword = await bcrypt.hashSync(body.password, 10);
+//         const admin = await this.authRepository.save({
+//           ...body,
+//           role: userRole,
+//           password: hashedPassword,
+//           isEmailConfirmed: true,
+//         });
+
+//         const payload: JwtPayload = {
+//           email: admin.email,
+//           id: admin.id,
+//           role: userRole,
+//         };
+//         const accessToken = this.jwtService.sign(payload);
+//         const refreshToken = this.jwtService.sign(payload, {
+//           expiresIn: '30d',
+//         });
+//         return {
+//           user: admin,
+//           refreshToken: refreshToken,
+//           accessToken: accessToken,
+//         };
+//       } else {
+//         throw new NotFoundException(
+//           ResponseMessages.USER_TYPE_NOT_VALID_FOR_REGISTER,
+//         );
+//       }
+//     } else {
+//       throw new BadRequestException(ResponseMessages.EMAIL_ALREADY_EXISTS);
+//     }
+//   }
+
+//   async login(body: LoginRequestDto) {
+//     const user = await this.authRepository.findOne({
+//       where: { email: body.email },
+//     });
+//     if (!user) {
+//       throw new NotFoundException(ResponseMessages.USER_NOT_FOUND);
+//     }
+//     const isPasswordMatch = await bcrypt.compare(body.password, user.password);
+//     if (!isPasswordMatch) {
+//       throw new NotFoundException(ResponseMessages.PASSWORD_OR_EMAIL_INCORRECT);
+//     }
+
+//     // Email doğrulanmadıysa giriş yapmasını engelle
+//     if (user.role === UserTypes.BUSINESS && !user.isEmailConfirmed) {
+//       throw new BadRequestException(ResponseMessages.EMAIL_NOT_CONFIRMED);
+//     }
+
+//     const payload: JwtPayload = {
+//       email: user.email,
+//       id: user.id,
+//       role: user.role,
+//     };
+//     const accessToken = this.jwtService.sign(payload);
+//     const refreshToken = this.jwtService.sign(payload, { expiresIn: '30d' });
+//     return { user: user, refreshToken: refreshToken, accessToken: accessToken };
+//   }
+
+//   private async isEmailAvailableForUserRegister(body: RegisterRequestDto) {
+//     const isEmailAvailable = await this.authRepository.findOne({
+//       where: { email: body.email },
+//     });
+//     if (isEmailAvailable) {
+//       throw new BadRequestException(ResponseMessages.EMAIL_ALREADY_EXISTS);
+//     }
+//     return true;
+//   }
+
+//   async confirmEmail(
+//     email: string,
+//     confirmCode: string,
+//   ): Promise<{ message: string }> {
+//     const user = await this.authRepository.findOne({ where: { email } });
+
+//     if (!user) {
+//       throw new NotFoundException(ResponseMessages.USER_NOT_FOUND);
+//     }
+
+//     if (user.isEmailConfirmed) {
+//       throw new BadRequestException(ResponseMessages.EMAIL_ALREADY_CONFIRMED);
+//     }
+
+//     // Doğrulama kodunu kontrol et
+//     if (user.confirmCode !== confirmCode) {
+//       throw new BadRequestException(ResponseMessages.INVALID_CONFIRM_CODE);
+//     }
+
+//     // Kodun süresi doldu mu kontrol et
+//     if (user.confirmCodeExpiresAt && new Date() > user.confirmCodeExpiresAt) {
+//       // KOD SÜRESİ DOLMUŞSA: Yeni kod oluştur ve gönder
+//       const newVerificationCode = randomInt(100000, 999999).toString();
+//       const newConfirmCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // Yeni 15 dakikalık süre
+
+//       user.confirmCode = newVerificationCode;
+//       user.confirmCodeExpiresAt = newConfirmCodeExpiresAt;
+//       await this.authRepository.save(user); // Kullanıcıyı yeni kodla kaydet
+
+//       // Yeni kodu e-posta ile gönder
+//       await this.mailService.sendUserConfirmation(
+//         user.email,
+//         newVerificationCode,
+//       );
+
+//       throw new BadRequestException(
+//         ResponseMessages.CONFIRM_CODE_EXPIRED_NEW_SENT, // Yeni bir hata mesajı ekleyin
+//       );
+//     }
+
+//     user.isEmailConfirmed = true;
+//     user.confirmCode = null!;
+//     user.confirmCodeExpiresAt = null!;
+
+//     await this.authRepository.save(user);
+
+//     return { message: ResponseMessages.EMAIL_CONFIRMED_SUCCESSFULLY };
+//   }
+
+//   verifyToken(token: string): JwtPayload {
+//     return this.jwtService.verify(token);
+//   }
+
+//   createAccessToken(payload: JwtPayload): string {
+//     return this.jwtService.sign(payload);
+//   }
+
+//   async getUserById(id: number): Promise<User | null> {
+//     return this.authRepository.findOne({ where: { id } });
+//   }
+// }
+// auth.service.ts (GÜNCELLENDİ)
+// import {
+//   BadRequestException,
+//   Injectable,
+//   NotFoundException,
+//   UnauthorizedException,
+// } from '@nestjs/common';
+// import { RegisterRequestDto } from './dto/request/RegisterRequest.dto';
+// import { UserTypes } from 'src/_common/enums/UserTypes.enums';
+// import { InjectRepository } from '@nestjs/typeorm';
+// import { User } from 'src/_common/typeorm';
+// import { Repository } from 'typeorm';
+// import { ResponseMessages } from 'src/_common/enums/ResponseMessages.enum';
+// import * as bcrypt from 'bcrypt';
+// import { JwtPayload } from 'src/_common/payloads/jwt.payload';
+// import { JwtService } from '@nestjs/jwt';
+// import { LoginRequestDto } from './dto/request/LoginRequest.dto';
+// import { randomInt } from 'crypto';
+// import { MailService } from 'src/mail/mail.service';
+// import { ConfigService } from '@nestjs/config';
+
+// @Injectable()
+// export class AuthService {
+//   constructor(
+//     @InjectRepository(User) private readonly authRepository: Repository<User>,
+//     private readonly jwtService: JwtService,
+//     private readonly mailService: MailService,
+//     private readonly configService: ConfigService,
+//   ) {}
+
+//   async register(
+//     body: RegisterRequestDto,
+//   ): Promise<{ user: User; refreshToken: string; accessToken: string }> {
+//     const isAvailable = await this.isEmailAvailableForUserRegister(body);
+//     const userRole = body.userType;
+
+//     if (isAvailable) {
+//       const hashedPassword = await bcrypt.hashSync(body.password, 10);
+//       let userToSave: Partial<User>;
+
+//       if (userRole === UserTypes.BUSINESS) {
+//         const verificationCode = randomInt(100000, 999999).toString();
+//         const confirmCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+//         userToSave = {
+//           ...body,
+//           role: userRole,
+//           password: hashedPassword,
+//           confirmCode: verificationCode,
+//           confirmCodeExpiresAt: confirmCodeExpiresAt,
+//           isEmailConfirmed: false,
+//         };
+//       } else if (userRole === UserTypes.ADMIN) {
+//         userToSave = {
+//           ...body,
+//           role: userRole,
+//           password: hashedPassword,
+//           isEmailConfirmed: true,
+//         };
+//       } else {
+//         throw new NotFoundException(
+//           ResponseMessages.USER_TYPE_NOT_VALID_FOR_REGISTER,
+//         );
+//       }
+
+//       const user = await this.authRepository.save(userToSave);
+
+//       if (userRole === UserTypes.BUSINESS) {
+//         await this.mailService.sendUserConfirmation(
+//           body.email,
+//           user.confirmCode as string, // user objesi üzerinde confirmCode'u kullan
+//         );
+//       }
+
+//       const payload: JwtPayload = {
+//         email: user.email,
+//         id: user.id,
+//         role: user.role,
+//       };
+//       const accessToken = this.jwtService.sign(payload, { expiresIn: '2m' }); // Access token süresini kısalt
+//       const refreshToken = this.jwtService.sign(payload, {
+//         expiresIn: '5m',
+//       });
+
+//       return {
+//         user: user,
+//         refreshToken: refreshToken,
+//         accessToken: accessToken,
+//       };
+//     } else {
+//       throw new BadRequestException(ResponseMessages.EMAIL_ALREADY_EXISTS);
+//     }
+//   }
+
+//   async login(
+//     body: LoginRequestDto,
+//   ): Promise<{ user: User; refreshToken: string; accessToken: string }> {
+//     const user = await this.authRepository.findOne({
+//       where: { email: body.email },
+//     });
+//     if (!user) {
+//       throw new NotFoundException(ResponseMessages.USER_NOT_FOUND);
+//     }
+//     const isPasswordMatch = await bcrypt.compare(body.password, user.password);
+//     if (!isPasswordMatch) {
+//       throw new NotFoundException(ResponseMessages.PASSWORD_OR_EMAIL_INCORRECT);
+//     }
+
+//     if (user.role === UserTypes.BUSINESS && !user.isEmailConfirmed) {
+//       throw new BadRequestException(ResponseMessages.EMAIL_NOT_CONFIRMED);
+//     }
+
+//     const payload: JwtPayload = {
+//       email: user.email,
+//       id: user.id,
+//       role: user.role,
+//     };
+
+//     // Yeni oluşturulan fonksiyonu kullanarak token'ları al
+//     const { accessToken, refreshToken } = this.generateAuthTokens(payload);
+
+//     return { user: user, refreshToken: refreshToken, accessToken: accessToken };
+//   }
+
+//   // YENİ EKLEDİK: refresh token ile yeni tokenlar oluşturma
+//   async refreshTokens(
+//     payload: JwtPayload,
+//   ): Promise<{ newAccessToken: string; newRefreshToken: string }> {
+//     // Payload'dan user'ı tekrar veritabanından çekmek daha güvenli olabilir
+//     // const user = await this.authRepository.findOne({ where: { id: payload.id } });
+//     // if (!user) throw new UnauthorizedException('User not found for refresh');
+
+//     // Yeni access token oluştur
+//     const newAccessToken = this.jwtService.sign(
+//       { email: payload.email, id: payload.id, role: payload.role },
+//       { expiresIn: '2m' }, // Kısa ömürlü
+//     );
+
+//     // Yeni refresh token oluştur (rotation için)
+//     const newRefreshToken = this.jwtService.sign(
+//       { email: payload.email, id: payload.id, role: payload.role },
+//       { expiresIn: '5m' }, // Uzun ömürlü
+//     );
+
+//     return { newAccessToken, newRefreshToken };
+//   }
+
+//   private async isEmailAvailableForUserRegister(body: RegisterRequestDto) {
+//     const isEmailAvailable = await this.authRepository.findOne({
+//       where: { email: body.email },
+//     });
+//     if (isEmailAvailable) {
+//       throw new BadRequestException(ResponseMessages.EMAIL_ALREADY_EXISTS);
+//     }
+//     return true;
+//   }
+
+//   async confirmEmail(
+//     email: string,
+//     confirmCode: string,
+//   ): Promise<{ message: string }> {
+//     const user = await this.authRepository.findOne({ where: { email } });
+
+//     if (!user) {
+//       throw new NotFoundException(ResponseMessages.USER_NOT_FOUND);
+//     }
+
+//     if (user.isEmailConfirmed) {
+//       throw new BadRequestException(ResponseMessages.EMAIL_ALREADY_CONFIRMED);
+//     }
+
+//     if (user.confirmCode !== confirmCode) {
+//       throw new BadRequestException(ResponseMessages.INVALID_CONFIRM_CODE);
+//     }
+
+//     if (user.confirmCodeExpiresAt && new Date() > user.confirmCodeExpiresAt) {
+//       const newVerificationCode = randomInt(100000, 999999).toString();
+//       const newConfirmCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+//       user.confirmCode = newVerificationCode;
+//       user.confirmCodeExpiresAt = newConfirmCodeExpiresAt;
+//       await this.authRepository.save(user);
+
+//       await this.mailService.sendUserConfirmation(
+//         user.email,
+//         newVerificationCode,
+//       );
+
+//       throw new BadRequestException(
+//         ResponseMessages.CONFIRM_CODE_EXPIRED_NEW_SENT,
+//       );
+//     }
+
+//     user.isEmailConfirmed = true;
+//     user.confirmCode = null!;
+//     user.confirmCodeExpiresAt = null!;
+
+//     await this.authRepository.save(user);
+
+//     return { message: ResponseMessages.EMAIL_CONFIRMED_SUCCESSFULLY };
+//   }
+
+//   verifyToken(token: string): JwtPayload {
+//     try {
+//       return this.jwtService.verify(token);
+//     } catch (error) {
+//       throw new UnauthorizedException('Token verification failed');
+//     }
+//   }
+
+//   createAccessToken(payload: JwtPayload): string {
+//     return this.jwtService.sign(payload, { expiresIn: '2m' }); // Varsayılan kısa süre
+//   }
+
+//   async getUserById(id: number): Promise<User | null> {
+//     return this.authRepository.findOne({ where: { id } });
+//   }
+
+//   private generateAuthTokens(payload: JwtPayload): {
+//     accessToken: string;
+//     refreshToken: string;
+//   } {
+//     const accessTokenExpiresIn = this.configService.get<string>(
+//       'jwt_service.accessTokenExpiresIn',
+//     );
+//     const refreshTokenExpiresIn = this.configService.get<string>(
+//       'jwt_service.refreshTokenExpiresIn',
+//     );
+
+//     const accessToken = this.jwtService.sign(payload, {
+//       expiresIn: accessTokenExpiresIn,
+//     });
+//     const refreshToken = this.jwtService.sign(payload, {
+//       expiresIn: refreshTokenExpiresIn,
+//     });
+
+//     return { accessToken, refreshToken };
+//   }
+// }
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { RegisterRequestDto } from './dto/request/RegisterRequest.dto';
 import { UserTypes } from 'src/_common/enums/UserTypes.enums';
@@ -9,12 +447,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/_common/typeorm';
 import { Repository } from 'typeorm';
 import { ResponseMessages } from 'src/_common/enums/ResponseMessages.enum';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcrypt'; // bcrypt.hash için async metodu kullanacağız
 import { JwtPayload } from 'src/_common/payloads/jwt.payload';
 import { JwtService } from '@nestjs/jwt';
 import { LoginRequestDto } from './dto/request/LoginRequest.dto';
 import { randomInt } from 'crypto';
 import { MailService } from 'src/mail/mail.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
@@ -22,84 +461,160 @@ export class AuthService {
     @InjectRepository(User) private readonly authRepository: Repository<User>,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
+    private readonly configService: ConfigService,
   ) {}
 
-  async register(
-    body: RegisterRequestDto,
-  ): Promise<{ user: User; refreshToken: string; accessToken: string }> {
-    const isAvailable = await this.isEmailAvailableForUserRegister(body);
-    const userRole = body.userType;
+  /**
+   * Verilen payload ile access ve refresh token'ları oluşturur.
+   * JWT sürelerini jwt.config.ts'ten ConfigService aracılığıyla çeker.
+   * Bu fonksiyon, token oluşturmanın tek ve merkezi noktasıdır.
+   * @param payload JWT'ye dahil edilecek kullanıcı bilgileri.
+   * @returns Access ve Refresh token'ları içeren bir obje.
+   */
+  // private generateAuthTokens(payload: JwtPayload): {
+  //   accessToken: string;
+  //   refreshToken: string;
+  // } {
+  //   const cleanPayload: JwtPayload = {
+  //     email: payload.email,
+  //     id: payload.id,
+  //     role: payload.role,
+  //   };
+  //   console.log(process.env.JWT_SECRET); // JWT Secret'ın gerçekten okunduğunu doğrula
+  //   const accessTokenExpiresIn = this.configService.get<string>(
+  //     'jwt_service.accessTokenExpiresIn',
+  //   );
+  //   const refreshTokenExpiresIn = this.configService.get<string>(
+  //     'jwt_service.refreshTokenExpiresIn',
+  //   );
+  //   console.log('Access Token Süresi:', accessTokenExpiresIn);
+  //   console.log('Refresh Token Süresi:', refreshTokenExpiresIn);
 
-    if (isAvailable) {
-      if (userRole === UserTypes.BUSINESS) {
-        const verificationCode = randomInt(100000, 999999).toString();
-        const hashedPassword = await bcrypt.hashSync(body.password, 10);
-        // Doğrulama kodunun 15 dakika sonra süresinin dolmasını ayarladık
-        const confirmCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+  //   let accessToken: string;
+  //   let refreshToken: string;
 
-        const business = await this.authRepository.save({
-          ...body,
-          role: userRole,
-          password: hashedPassword,
-          confirmCode: verificationCode,
-          confirmCodeExpiresAt: confirmCodeExpiresAt,
-          isEmailConfirmed: false, // Yeni kayıt olanlar başlangıçta doğrulanmamış olur
-        });
+  //   try {
+  //     accessToken = this.jwtService.sign(cleanPayload, {
+  //       expiresIn: accessTokenExpiresIn,
+  //     });
+  //     console.log('Access Token:', accessToken); // Token oluşturulduktan sonra yazdır
+  //   } catch (error) {
+  //     console.error('Access Token oluşturulurken hata:', error);
+  //     throw new Error('Access token oluşturulamadı.'); // Daha spesifik bir hata fırlat
+  //   }
 
-        await this.mailService.sendUserConfirmation(
-          body.email,
-          verificationCode,
-        );
+  //   try {
+  //     refreshToken = this.jwtService.sign(cleanPayload, {
+  //       expiresIn: refreshTokenExpiresIn,
+  //     });
+  //     console.log('Refresh Token:', refreshToken); // Token oluşturulduktan sonra yazdır
+  //   } catch (error) {
+  //     console.error('Refresh Token oluşturulurken hata:', error);
+  //     throw new Error('Refresh token oluşturulamadı.'); // Daha spesifik bir hata fırlat
+  //   }
 
-        const payload: JwtPayload = {
-          email: business.email,
-          id: business.id,
-          role: userRole,
-        };
-        const accessToken = this.jwtService.sign(payload);
-        const refreshToken = this.jwtService.sign(payload, {
-          expiresIn: '30d',
-        });
+  //   return { accessToken, refreshToken };
+  // }
+  private generateAuthTokens(payload: JwtPayload): {
+    accessToken: string;
+    refreshToken: string;
+  } {
+    const cleanPayload: JwtPayload = {
+      email: payload.email,
+      id: payload.id,
+      role: payload.role,
+    };
 
-        return {
-          user: business,
-          refreshToken: refreshToken,
-          accessToken: accessToken,
-        };
-      } else if (userRole === UserTypes.ADMIN) {
-        const hashedPassword = await bcrypt.hashSync(body.password, 10);
-        const admin = await this.authRepository.save({
-          ...body,
-          role: userRole,
-          password: hashedPassword,
-          isEmailConfirmed: true,
-        });
+    const accessTokenExpiresIn = this.configService.get<string>(
+      'jwt_service.accessTokenExpiresIn',
+    );
+    const refreshTokenExpiresIn = this.configService.get<string>(
+      'jwt_service.refreshTokenExpiresIn',
+    );
 
-        const payload: JwtPayload = {
-          email: admin.email,
-          id: admin.id,
-          role: userRole,
-        };
-        const accessToken = this.jwtService.sign(payload);
-        const refreshToken = this.jwtService.sign(payload, {
-          expiresIn: '30d',
-        });
-        return {
-          user: admin,
-          refreshToken: refreshToken,
-          accessToken: accessToken,
-        };
-      } else {
-        throw new NotFoundException(
-          ResponseMessages.USER_TYPE_NOT_VALID_FOR_REGISTER,
-        );
-      }
-    } else {
+    const accessToken = this.jwtService.sign(cleanPayload, {
+      expiresIn: accessTokenExpiresIn,
+    });
+
+    const refreshToken = this.jwtService.sign(cleanPayload, {
+      expiresIn: refreshTokenExpiresIn,
+    });
+
+    return { accessToken, refreshToken };
+  }
+  /**
+   * Kullanıcının e-posta adresinin kayıt için uygun olup olmadığını kontrol eder.
+   * Eğer e-posta zaten kullanılıyorsa BadRequestException fırlatır.
+   * @param email Kontrol edilecek e-posta adresi.
+   */
+  private async validateEmailForRegistration(email: string): Promise<void> {
+    const existingUser = await this.authRepository.findOne({
+      where: { email },
+    });
+    if (existingUser) {
       throw new BadRequestException(ResponseMessages.EMAIL_ALREADY_EXISTS);
     }
   }
 
-  async login(body: LoginRequestDto) {
+  async register(
+    body: RegisterRequestDto,
+  ): Promise<{ user: User; refreshToken: string; accessToken: string }> {
+    // E-posta uygunluğunu kontrol et
+    await this.validateEmailForRegistration(body.email);
+
+    // Şifreyi hash'le (async bcrypt.hash kullanıldı)
+    const hashedPassword = await bcrypt.hash(body.password, 10);
+    let userToSave: Partial<User>;
+
+    // Kullanıcı tipine göre kullanıcı objesini hazırla
+    if (body.userType === UserTypes.BUSINESS) {
+      const verificationCode = randomInt(100000, 999999).toString();
+      const confirmCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 dakika
+      userToSave = {
+        ...body,
+        role: body.userType,
+        password: hashedPassword,
+        confirmCode: verificationCode,
+        confirmCodeExpiresAt: confirmCodeExpiresAt,
+        isEmailConfirmed: false,
+      };
+    } else if (body.userType === UserTypes.ADMIN) {
+      userToSave = {
+        ...body,
+        role: body.userType,
+        password: hashedPassword,
+        isEmailConfirmed: true, // Adminler için e-posta onayı varsayılan olarak true
+      };
+    } else {
+      // Geçersiz kullanıcı tipi
+      throw new BadRequestException(
+        ResponseMessages.USER_TYPE_NOT_VALID_FOR_REGISTER,
+      );
+    }
+
+    const user = await this.authRepository.save(userToSave);
+
+    // İşletme kullanıcısıysa e-posta onayı gönder
+    if (user.role === UserTypes.BUSINESS) {
+      await this.mailService.sendUserConfirmation(
+        user.email,
+        user.confirmCode as string,
+      );
+    }
+    const payload: JwtPayload = {
+      email: user.email,
+      id: user.id,
+      role: user.role,
+    };
+    // Token'ları generateAuthTokens fonksiyonu ile oluştur
+    const { accessToken, refreshToken } = this.generateAuthTokens(payload);
+
+    return { user, refreshToken, accessToken };
+  }
+
+  async login(
+    body: LoginRequestDto,
+  ): Promise<{ user: User; refreshToken: string; accessToken: string }> {
     const user = await this.authRepository.findOne({
       where: { email: body.email },
     });
@@ -111,7 +626,6 @@ export class AuthService {
       throw new NotFoundException(ResponseMessages.PASSWORD_OR_EMAIL_INCORRECT);
     }
 
-    // Email doğrulanmadıysa giriş yapmasını engelle
     if (user.role === UserTypes.BUSINESS && !user.isEmailConfirmed) {
       throw new BadRequestException(ResponseMessages.EMAIL_NOT_CONFIRMED);
     }
@@ -121,19 +635,30 @@ export class AuthService {
       id: user.id,
       role: user.role,
     };
-    const accessToken = this.jwtService.sign(payload);
-    const refreshToken = this.jwtService.sign(payload, { expiresIn: '30d' });
+
+    const { accessToken, refreshToken } = this.generateAuthTokens(payload);
+
     return { user: user, refreshToken: refreshToken, accessToken: accessToken };
   }
 
-  private async isEmailAvailableForUserRegister(body: RegisterRequestDto) {
-    const isEmailAvailable = await this.authRepository.findOne({
-      where: { email: body.email },
-    });
-    if (isEmailAvailable) {
-      throw new BadRequestException(ResponseMessages.EMAIL_ALREADY_EXISTS);
-    }
-    return true;
+  /**
+   * Refresh token kullanarak yeni access ve refresh token'ları oluşturur.
+   * Token rotasyonu için kullanılır.
+   * @param payload Refresh token'dan doğrulanmış JWT payload'ı.
+   * @returns Yeni access ve refresh token'ları içeren obje.
+   */
+  async refreshTokens(
+    payload: JwtPayload,
+  ): Promise<{ newAccessToken: string; newRefreshToken: string }> {
+    // Güvenlik için: Refresh token'dan gelen payload'daki ID ile kullanıcıyı veritabanından tekrar çekmek
+    // ve kullanıcının hala aktif/geçerli olduğundan emin olmak daha güvenlidir.
+    // const user = await this.authRepository.findOne({ where: { id: payload.id } });
+    // if (!user) throw new UnauthorizedException('User not found or invalid for refresh');
+
+    // Token'ları generateAuthTokens fonksiyonu ile oluştur
+    const { accessToken, refreshToken } = this.generateAuthTokens(payload);
+
+    return { newAccessToken: accessToken, newRefreshToken: refreshToken };
   }
 
   async confirmEmail(
@@ -150,29 +675,25 @@ export class AuthService {
       throw new BadRequestException(ResponseMessages.EMAIL_ALREADY_CONFIRMED);
     }
 
-    // Doğrulama kodunu kontrol et
     if (user.confirmCode !== confirmCode) {
       throw new BadRequestException(ResponseMessages.INVALID_CONFIRM_CODE);
     }
 
-    // Kodun süresi doldu mu kontrol et
     if (user.confirmCodeExpiresAt && new Date() > user.confirmCodeExpiresAt) {
-      // KOD SÜRESİ DOLMUŞSA: Yeni kod oluştur ve gönder
       const newVerificationCode = randomInt(100000, 999999).toString();
-      const newConfirmCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // Yeni 15 dakikalık süre
+      const newConfirmCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
       user.confirmCode = newVerificationCode;
       user.confirmCodeExpiresAt = newConfirmCodeExpiresAt;
-      await this.authRepository.save(user); // Kullanıcıyı yeni kodla kaydet
+      await this.authRepository.save(user);
 
-      // Yeni kodu e-posta ile gönder
       await this.mailService.sendUserConfirmation(
         user.email,
         newVerificationCode,
       );
 
       throw new BadRequestException(
-        ResponseMessages.CONFIRM_CODE_EXPIRED_NEW_SENT, // Yeni bir hata mesajı ekleyin
+        ResponseMessages.CONFIRM_CODE_EXPIRED_NEW_SENT,
       );
     }
 
@@ -185,15 +706,31 @@ export class AuthService {
     return { message: ResponseMessages.EMAIL_CONFIRMED_SUCCESSFULLY };
   }
 
+  /**
+   * Verilen token'ı doğrular ve payload'ını döndürür.
+   * Doğrulama başarısız olursa UnauthorizedException fırlatır.
+   * @param token Doğrulanacak JWT.
+   * @returns JWT payload'ı.
+   */
   verifyToken(token: string): JwtPayload {
-    return this.jwtService.verify(token);
+    try {
+      return this.jwtService.verify(token);
+    } catch (error) {
+      throw new UnauthorizedException('Token verification failed');
+    }
   }
 
-  createAccessToken(payload: JwtPayload): string {
-    return this.jwtService.sign(payload);
-  }
-
+  /**
+   * Kullanıcı ID'sine göre kullanıcıyı veritabanından getirir.
+   * @param id Kullanıcı ID'si.
+   * @returns Kullanıcı objesi veya null.
+   */
   async getUserById(id: number): Promise<User | null> {
     return this.authRepository.findOne({ where: { id } });
   }
+
+  // createAccessToken fonksiyonu, generateAuthTokens fonksiyonu ile çakıştığı için kaldırıldı.
+  // private createAccessToken(payload: JwtPayload): string {
+  //   return this.jwtService.sign(payload, { expiresIn: '2m' });
+  // }
 }

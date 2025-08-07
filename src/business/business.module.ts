@@ -11,6 +11,7 @@ import {
   TimeSlot,
   User,
 } from 'src/_common/typeorm';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
   controllers: [BusinessController],
@@ -25,6 +26,7 @@ import {
       Service,
       Appointment,
     ]),
+    AuthModule, // AuthModule'ü ekleyerek JWT ve kimlik doğrulama işlevselliğini kullanabiliriz
   ],
 })
 export class BusinessModule {}

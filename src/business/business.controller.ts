@@ -57,7 +57,7 @@ export class BusinessController {
     // JWT guard'ı geçtiği için request.user objesinin var olacağını varsayıyoruz
     // request.user objesinin içinde userId'nizin hangi isimde olduğuna dikkat edin (örneğin 'id' veya 'sub')
     const userId = req.user.id; // VEYA req.user.sub (JWT payload'ında 'sub' olarak geliyorsa)
-
+    console.log('Checking business add permission for user ID:', userId);
     try {
       await this.businessService.businessCount(userId);
       return {
