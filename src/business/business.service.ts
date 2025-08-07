@@ -65,6 +65,15 @@ export class BusinessService {
       );
     }
     const slug = this.generateSlug(dto.businessName);
+
+    // 🔥 Slug zaten varsa uyarı ver
+    const existing = await this.businessRepository.findOne({ where: { slug } });
+    if (existing) {
+      throw new BadRequestException(
+        'Bu işletme adı zaten kullanılıyor. Lütfen farklı bir ad deneyin.',
+      );
+    }
+
     const newBusiness = this.businessRepository.create({ ...dto, user, slug });
     return await this.businessRepository.save(newBusiness);
   }
