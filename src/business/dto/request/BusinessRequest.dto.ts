@@ -138,6 +138,16 @@ export class BusinessRequestDto {
   // })
   isLocationVisible: boolean;
 
+  @ApiProperty({ example: 'İstanbul', required: false })
+  @IsOptional()
+  @IsString()
+  city: string;
+
+  @ApiProperty({ example: 'Ataşehir', required: false })
+  @IsOptional()
+  @IsString()
+  county: string;
+
   @ApiProperty()
   @IsOptional()
   @IsString()

@@ -8,12 +8,15 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
+  NotFoundException,
+  Query,
 } from '@nestjs/common';
 import { CustomerService } from './customer.service';
 import { Appointment, Business } from 'src/_common/typeorm';
 import { DetailedTimeSlotDto } from './dto/request/DetailedTimeSlot.dto';
 import { CreateAppointmentDto } from './dto/request/CreateAppointment.dto';
 import { VerifyPhoneDto } from './dto/request/VerifyPhone.dto';
+import { ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 
 @Controller('customers')
 export class CustomerController {
@@ -81,5 +84,32 @@ export class CustomerController {
     @Body() createAppointmentDto: CreateAppointmentDto, // Aynı DTO'yu kullanabiliriz
   ): Promise<Appointment> {
     return this.customerService.finalizeAppointment(createAppointmentDto);
+  }
+
+  @Get('/by-location')
+  @ApiOperation({ summary: 'Get businesses by location' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of businesses',
+    type: [Business],
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'No businesses found in the specified location',
+  })
+  @ApiQuery({ name: 'city', required: true, example: 'istanbul' })
+  @ApiQuery({ name: 'county', required: true, example: 'ataşehir' })
+  async getBusinesssByLocation(
+    @Query('city') city: string,
+    @Query('county') county: string,
+  ): Promise<Business[]> {
+    try {
+      return await this.customerService.getBusinessByLocation(city, county);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(error.message);
+      }
+      throw error;
+    }
   }
 }

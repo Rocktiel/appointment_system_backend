@@ -321,4 +321,33 @@ export class CustomerService {
 
     return this.appointmentRepository.save(newAppointment);
   }
+
+  async getBusinessByLocation(
+    city: string,
+    county: string,
+  ): Promise<Business[]> {
+    const businesses = await this.businessRepository.find({
+      where: {
+        city: Raw((alias) => `${alias} ILIKE :city`, { city: `%${city}%` }),
+        county: Raw((alias) => `${alias} ILIKE :county`, {
+          county: `%${county}%`,
+        }),
+      },
+      select: [
+        'id',
+        'businessName',
+        'city',
+        'county',
+        'slug',
+        'businessPhone',
+        'businessAddress',
+      ], // Sadece bu alanları seç
+    });
+
+    if (businesses.length === 0) {
+      throw new NotFoundException('Seçtiğiniz konumda işletme bulunamadı.');
+    }
+
+    return businesses;
+  }
 }

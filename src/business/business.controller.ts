@@ -28,6 +28,7 @@ import { Service } from 'src/_common/typeorm';
 import { AppointmentsRequestDto } from './dto/request/AppointmentsRequest.dto';
 import { plainToInstance } from 'class-transformer';
 import { AppointmentResponseDto } from './dto/response/AppointmentResponse.dto';
+import { CreateAppointmentDto } from 'src/customer/dto/request/CreateAppointment.dto';
 interface AuthenticatedRequest extends ExpressRequest {
   user: JwtPayload;
 }
@@ -57,7 +58,7 @@ export class BusinessController {
     // JWT guard'ı geçtiği için request.user objesinin var olacağını varsayıyoruz
     // request.user objesinin içinde userId'nizin hangi isimde olduğuna dikkat edin (örneğin 'id' veya 'sub')
     const userId = req.user.id; // VEYA req.user.sub (JWT payload'ında 'sub' olarak geliyorsa)
-    console.log('Checking business add permission for user ID:', userId);
+
     try {
       await this.businessService.businessCount(userId);
       return {
@@ -315,5 +316,14 @@ export class BusinessController {
       start,
       end,
     );
+  }
+
+  @Post('create-appointment')
+  async createAppointment(
+    @Body() dto: CreateAppointmentDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    console.log('Creating appointment with data:', dto);
+    return this.businessService.createAppointment(dto);
   }
 }

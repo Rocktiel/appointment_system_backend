@@ -24,6 +24,7 @@ import { AppointmentsRequestDto } from './dto/request/AppointmentsRequest.dto';
 import { parseISO, getDay, format } from 'date-fns';
 import { DetailedTimeSlotDto } from 'src/customer/dto/request/DetailedTimeSlot.dto';
 import { AppointmentStatus } from 'src/_common/enums/AppointmentStatus.enum';
+import { CreateAppointmentDto } from 'src/customer/dto/request/CreateAppointment.dto';
 @Injectable()
 export class BusinessService {
   constructor(
@@ -373,6 +374,88 @@ export class BusinessService {
     return appointment;
   }
 
+  // async getDetailedTimeSlotsInRange(
+  //   businessId: number,
+  //   startDate: string, // YYYY-MM-DD
+  //   endDate: string, // YYYY-MM-DD
+  // ): Promise<Record<string, DetailedTimeSlotDto[]>> {
+  //   const business = await this.businessRepository.findOne({
+  //     where: { id: businessId },
+  //   });
+  //   if (!business) {
+  //     throw new NotFoundException(`Business with ID ${businessId} not found`);
+  //   }
+
+  //   const start = parseISO(startDate);
+  //   const end = parseISO(endDate);
+
+  //   if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) {
+  //     throw new BadRequestException('Invalid date range');
+  //   }
+
+  //   const dateList: string[] = [];
+  //   const current = new Date(start);
+  //   while (current <= end) {
+  //     dateList.push(format(current, 'yyyy-MM-dd'));
+  //     current.setDate(current.getDate() + 1);
+  //   }
+
+  //   const allAppointments = await this.appointmentRepository.find({
+  //     where: {
+  //       business: { id: businessId },
+  //       date: Raw((alias) => `${alias} BETWEEN :start AND :end`, {
+  //         start: startDate,
+  //         end: endDate,
+  //       }),
+  //       status: Raw((alias) => `${alias} IN (:...statuses)`, {
+  //         statuses: [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED],
+  //       }),
+  //     },
+  //   });
+
+  //   const result: Record<string, DetailedTimeSlotDto[]> = {};
+
+  //   for (const dateStr of dateList) {
+  //     const parsedDate = parseISO(dateStr);
+  //     const dayOfWeekIndex = getDay(parsedDate); // 0 (Sun) - 6 (Sat)
+
+  //     const dayId = dayOfWeekIndex === 0 ? 7 : dayOfWeekIndex;
+
+  //     const templates = await this.timeSlotRepo.find({
+  //       where: {
+  //         business: { id: businessId },
+  //         day: { id: dayId },
+  //       },
+  //       order: { start_time: 'ASC' },
+  //     });
+
+  //     const dayAppointments = allAppointments.filter(
+  //       (appt) => appt.date === dateStr,
+  //     );
+
+  //     result[dateStr] = templates.map((template) => {
+  //       const isAvailable = !dayAppointments.some((appointment) => {
+  //         const templateStart = new Date(`2000-01-01T${template.start_time}`);
+  //         const templateEnd = new Date(`2000-01-01T${template.end_time}`);
+  //         const apptStart = new Date(`2000-01-01T${appointment.start_time}`);
+  //         const apptEnd = new Date(`2000-01-01T${appointment.end_time}`);
+
+  //         return templateStart < apptEnd && templateEnd > apptStart;
+  //       });
+
+  //       return {
+  //         id: template.id,
+  //         start_time: template.start_time.substring(0, 5),
+  //         end_time: template.end_time.substring(0, 5),
+  //         isAvailableForBooking: isAvailable,
+  //         customerName: overlappingAppointment?.customer_name || null,
+  //         customerPhone: overlappingAppointment?.customer_phone || null,
+  //       };
+  //     });
+  //   }
+
+  //   return result;
+  // }
   async getDetailedTimeSlotsInRange(
     businessId: number,
     startDate: string, // YYYY-MM-DD
@@ -399,6 +482,7 @@ export class BusinessService {
       current.setDate(current.getDate() + 1);
     }
 
+    // customer_name ve customer_phone zaten Appointment entity'sinde olduğu için otomatik gelir
     const allAppointments = await this.appointmentRepository.find({
       where: {
         business: { id: businessId },
@@ -417,7 +501,6 @@ export class BusinessService {
     for (const dateStr of dateList) {
       const parsedDate = parseISO(dateStr);
       const dayOfWeekIndex = getDay(parsedDate); // 0 (Sun) - 6 (Sat)
-
       const dayId = dayOfWeekIndex === 0 ? 7 : dayOfWeekIndex;
 
       const templates = await this.timeSlotRepo.find({
@@ -433,7 +516,7 @@ export class BusinessService {
       );
 
       result[dateStr] = templates.map((template) => {
-        const isAvailable = !dayAppointments.some((appointment) => {
+        const overlappingAppointment = dayAppointments.find((appointment) => {
           const templateStart = new Date(`2000-01-01T${template.start_time}`);
           const templateEnd = new Date(`2000-01-01T${template.end_time}`);
           const apptStart = new Date(`2000-01-01T${appointment.start_time}`);
@@ -446,7 +529,9 @@ export class BusinessService {
           id: template.id,
           start_time: template.start_time.substring(0, 5),
           end_time: template.end_time.substring(0, 5),
-          isAvailableForBooking: isAvailable,
+          isAvailableForBooking: !overlappingAppointment,
+          customerName: overlappingAppointment?.customer_name || null,
+          customerPhone: overlappingAppointment?.customer_phone || null,
         };
       });
     }
@@ -467,6 +552,89 @@ export class BusinessService {
       relations: ['service'],
     });
     return appointments;
+  }
+
+  async createAppointment(dto: CreateAppointmentDto): Promise<Appointment> {
+    const {
+      businessId,
+      date,
+      start_time,
+      end_time,
+      customerName,
+      customerPhone,
+      note,
+      time_slot_template_id,
+      serviceId,
+    } = dto;
+
+    const business = await this.businessRepository.findOne({
+      where: { id: businessId },
+    });
+    if (!business) throw new NotFoundException('İşletme bulunamadı');
+
+    const timeSlot = await this.timeSlotRepo.findOne({
+      where: { id: dto.time_slot_template_id, business_id: dto.businessId },
+    });
+    if (!timeSlot) throw new NotFoundException('Zaman dilimi bulunamadı');
+
+    const service = await this.serviceRepository.findOne({
+      where: { id: dto.serviceId, business_id: dto.businessId },
+    });
+    if (!service) throw new NotFoundException('Hizmet bulunamadı');
+    console.log('Creating appointment with data:', dto);
+    const dateObj = new Date(date);
+    const dayOfWeek = dateObj.getDay();
+    const dayMap = [
+      'Pazar',
+      'Pazartesi',
+      'Salı',
+      'Çarşamba',
+      'Perşembe',
+      'Cuma',
+      'Cumartesi',
+    ];
+    const dayName = dayMap[dayOfWeek];
+    const dayEntity = await this.dayRepo.findOne({
+      where: { day_name: dayName },
+    });
+
+    if (!dayEntity) {
+      throw new BadRequestException('Invalid day for appointment.');
+    }
+
+    const existingConflictingAppointment =
+      await this.appointmentRepository.findOne({
+        where: {
+          business: { id: businessId },
+          date: date,
+          start_time,
+          end_time,
+          status: AppointmentStatus.PENDING,
+        },
+      });
+
+    if (existingConflictingAppointment) {
+      throw new BadRequestException(
+        'Bu zaman dilimi az önce alınmış. Lütfen başka bir zaman seçin.',
+      );
+    }
+
+    const newAppointment = this.appointmentRepository.create({
+      business_id: businessId,
+      date,
+      start_time,
+      end_time,
+      customer_name: customerName,
+      customer_phone: customerPhone,
+      note,
+      day: dayEntity,
+      day_id: dayEntity.id,
+      status: AppointmentStatus.PENDING,
+      service_id: serviceId,
+      time_slot_template_id: time_slot_template_id,
+    });
+    console.log('New appointment data:', newAppointment);
+    return this.appointmentRepository.save(newAppointment);
   }
 
   private generateSlug(name: string): string {

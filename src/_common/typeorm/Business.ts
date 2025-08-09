@@ -114,6 +114,12 @@ export class Business extends BaseEntity {
   @Column({ type: 'boolean', default: false })
   isLocationVisible: boolean;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  city: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  county: string;
+
   @ManyToOne(() => User, (user) => user.businesses, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;

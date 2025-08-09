@@ -151,14 +151,12 @@ export class AuthController {
     @Req() req: AuthenticatedRequest,
     @Res({ passthrough: true }) res: Response,
   ) {
-    console.log('Request Headers:', req.headers); // Tüm gelen başlıkları kontrol et
-    console.log('Request Cookies object:', req.cookies);
     const refreshTokenFromCookie = req.cookies?.refresh_token;
 
     if (!refreshTokenFromCookie) {
       throw new UnauthorizedException('Refresh token çerezlerde bulunamadı.');
     }
-    console.log('Refresh token from cookie:', refreshTokenFromCookie);
+
     try {
       // Refresh token'ı doğrula ve payload'ı al
       const payload = this.authService.verifyToken(refreshTokenFromCookie);
